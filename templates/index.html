@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ESP32-CAM Gesture Detection</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            min-height: 100vh;
+            color: #fff;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            text-align: center;
+            color: #00ff88;
+            margin-bottom: 10px;
+            font-size: 2.5rem;
+            text-shadow: 0 0 20px rgba(0, 255, 136, 0.3);
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #888;
+            margin-bottom: 30px;
+        }
+
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 350px;
+            gap: 20px;
+        }
+
+        .video-container {
+            background: #000;
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+            position: relative;
+            min-height: 480px;
+        }
+
+        .video-feed {
+            width: 100%;
+            display: block;
+            min-height: 480px;
+        }
+
+        .sidebar {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .card {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .card h2 {
+            font-size: 1.2rem;
+            color: #00ff88;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .gesture-display {
+            text-align: center;
+            padding: 30px 20px;
+        }
+
+        .gesture-icon {
+            font-size: 5rem;
+            margin-bottom: 15px;
+            display: block;
+        }
+
+        .gesture-text {
+            font-size: 2rem;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 3px;
+        }
+
+        .gesture-rock { color: #ff6b6b; }
+        .gesture-paper { color: #4ecdc4; }
+        .gesture-scissors { color: #ffe66d; }
+        .gesture-unknown { color: #888; }
+        .gesture-no-hand { color: #666; }
+
+        .status-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .status-item:last-child {
+            border-bottom: none;
+        }
+
+        .status-label {
+            color: #888;
+        }
+
+        .status-value {
+            color: #00ff88;
+            font-weight: bold;
+        }
+
+        .status-indicator {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+
+        .status-connected { background: #00ff88; }
+        .status-disconnected { background: #ff6b6b; }
+        .status-loading {
+            background: #ffa500;
+            animation: blink 1s infinite;
+        }
+
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
+
+        .debug-info {
+            font-family: monospace;
+            font-size: 0.85rem;
+            color: #aaa;
+            line-height: 1.6;
+        }
+
+        .error-message {
+            background: rgba(255, 107, 107, 0.2);
+            border: 1px solid #ff6b6b;
+            border-radius: 10px;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .error-message h3 {
+            color: #ff6b6b;
+            margin-bottom: 10px;
+        }
+
+        .error-message p {
+            color: #ccc;
+            line-height: 1.6;
+        }
+
+        @media (max-width: 1100px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>ESP32-CAM Gesture Detection</h1>
+        <p class="subtitle">Rock Paper Scissors • Real-time Detection</p>
+
+        <div class="main-content">
+            <div class="video-container">
+                <img src="/processed_feed" class="video-feed" id="videoFeed" alt="Video Feed">
+                <div id="errorMessage" class="error-message" style="display: none; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);">
+                    <h3>⚠️ Connection Error</h3>
+                    <p>Cannot connect to ESP32-CAM stream.</p>
+                    <p style="margin-top: 10px;">Make sure you're connected to ESP32-CAM WiFi!</p>
+                </div>
+            </div>
+
+            <div class="sidebar">
+                <div class="card">
+                    <h2>Detected Gesture</h2>
+                    <div class="gesture-display">
+                        <span class="gesture-icon" id="gestureIcon">👋</span>
+                        <span class="gesture-text" id="gestureText">NO HAND</span>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h2>Status</h2>
+                    <div class="status-item">
+                        <span class="status-label">ESP32-CAM</span>
+                        <span>
+                            <span class="status-indicator status-loading" id="camIndicator"></span>
+                            <span class="status-value" id="camStatus">Checking...</span>
+                        </span>
+                    </div>
+                    <div class="status-item">
+                        <span class="status-label">Detector</span>
+                        <span>
+                            <span class="status-indicator status-connected" id="detectorIndicator"></span>
+                            <span class="status-value" id="detectorStatus">Active</span>
+                        </span>
+                    </div>
+                    <div class="status-item">
+                        <span class="status-label">FPS</span>
+                        <span class="status-value" id="fpsCounter">0</span>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h2>Debug Info</h2>
+                    <div class="debug-info" id="debugInfo">
+                        Waiting for data...
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h2>How to Use</h2>
+                    <p style="color: #888; line-height: 1.6; font-size: 0.9rem;">
+                        <strong>✊ Rock:</strong> Closed fist<br>
+                        <strong>✋ Paper:</strong> All fingers open<br>
+                        <strong>✌️ Scissors:</strong> Index + Middle fingers
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const gestureIcons = {
+            'rock': '✊',
+            'paper': '✋',
+            'scissors': '✌️',
+            'unknown': '❓',
+            'No hand': '👋'
+        };
+
+        const gestureClasses = {
+            'rock': 'gesture-rock',
+            'paper': 'gesture-paper',
+            'scissors': 'gesture-scissors',
+            'unknown': 'gesture-unknown',
+            'No hand': 'gesture-no-hand'
+        };
+
+        let frameCount = 0;
+        let lastFrameTime = Date.now();
+        let fps = 0;
+
+        // DOM elements
+        const gestureText = document.getElementById('gestureText');
+        const gestureIcon = document.getElementById('gestureIcon');
+        const camStatus = document.getElementById('camStatus');
+        const camIndicator = document.getElementById('camIndicator');
+        const debugInfo = document.getElementById('debugInfo');
+        const fpsCounter = document.getElementById('fpsCounter');
+        const videoFeed = document.getElementById('videoFeed');
+        const errorMessage = document.getElementById('errorMessage');
+
+        function updateGesture(gesture) {
+            // Update text
+            const displayText = gesture === 'No hand' ? 'NO HAND' : gesture.toUpperCase();
+            gestureText.textContent = displayText;
+
+            // Update icon
+            gestureIcon.textContent = gestureIcons[gesture] || '👋';
+
+            // Update color
+            gestureText.className = 'gesture-text ' + (gestureClasses[gesture] || 'gesture-unknown');
+        }
+
+        function updateStatus(data) {
+            // Camera status
+            if (data.connected) {
+                camStatus.textContent = 'Connected';
+                camIndicator.className = 'status-indicator status-connected';
+                errorMessage.style.display = 'none';
+                videoFeed.style.display = 'block';
+            } else {
+                camStatus.textContent = 'Disconnected';
+                camIndicator.className = 'status-indicator status-disconnected';
+                errorMessage.style.display = 'block';
+            }
+
+            // Detector status
+            document.getElementById('detectorStatus').textContent = data.detector_ready ? 'Ready' : 'Error';
+            document.getElementById('detectorIndicator').className =
+                'status-indicator ' + (data.detector_ready ? 'status-connected' : 'status-disconnected');
+
+            // Debug info
+            debugInfo.innerHTML = `
+                Frames: ${data.frame_count}<br>
+                Current: ${data.current_gesture}<br>
+                Ready: ${data.detector_ready ? 'Yes' : 'No'}
+            `;
+
+            // Update gesture display
+            updateGesture(data.current_gesture);
+        }
+
+        // Calculate FPS
+        videoFeed.onload = function() {
+            frameCount++;
+            const now = Date.now();
+            const elapsed = (now - lastFrameTime) / 1000;
+            if (elapsed >= 1) {
+                fps = Math.round(frameCount / elapsed);
+                fpsCounter.textContent = fps;
+                frameCount = 0;
+                lastFrameTime = now;
+            }
+        };
+
+        // Poll for status updates
+        async function fetchStatus() {
+            try {
+                const response = await fetch('/status');
+                const data = await response.json();
+                updateStatus(data);
+            } catch (error) {
+                console.error('Status fetch error:', error);
+                camStatus.textContent = 'Error';
+                camIndicator.className = 'status-indicator status-disconnected';
+            }
+        }
+
+        // Check status every 100ms
+        setInterval(fetchStatus, 100);
+        fetchStatus(); // Initial fetch
+
+        // Handle video load error
+        videoFeed.onerror = function() {
+            videoFeed.style.display = 'none';
+            errorMessage.style.display = 'block';
+            camStatus.textContent = 'Error';
+            camIndicator.className = 'status-indicator status-disconnected';
+        };
+    </script>
+</body>
+</html>
