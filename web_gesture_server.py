@@ -14,7 +14,8 @@ import sys
 app = Flask(__name__)
 
 # ESP32-CAM stream URL
-ESP32_STREAM_URL = "http://192.168.4.1/stream"
+# Change to "http://192.168.4.1/stream" if your ESP32-CAM uses that endpoint
+ESP32_STREAM_URL = "http://192.168.4.1/"
 
 # Global variables
 current_gesture = "No hand"
