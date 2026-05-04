@@ -1,0 +1,201 @@
+╔═══════════════════════════════════════════════════════════════════════════════╗
+║              UART CONNECTION DIAGRAM - DUAL ESP32-CAM                            ║
+║         ESP32-CAM #1 (Camera) ←──→ ESP32-CAM #2 (Servo)                        ║
+╚═══════════════════════════════════════════════════════════════════════════════╝
+
+┌──────────────────────┐                    ┌──────────────────────┐
+│    ESP32-CAM #1      │                    │    ESP32-CAM #2      │
+│     (Camera)         │                    │     (Servo)          │
+│                      │                    │                      │
+│  (UART1) GPIO4 TX ───┼────────────────────┼──> GPIO4 (UART1) RX │
+│                      │                    │                      │
+│  (UART1) GPIO33 RX ◄─┼────────────────────┼─── GPIO33 (UART1) TX│
+│                      │                    │                      │
+│  GND ◄───────────────┼────────────────────┼─── GND              │
+│  (IMPORTANT!)        │                    │                      │
+└──────────────────────┘                    └──────────────────────┘
+
+╔═══════════════════════════════════════════════════════════════════════════════╗
+║                    SERVO CONNECTION DIAGRAM                                     ║
+║                      ESP32-CAM #2 (Servo) → SERVOS                              ║
+╚═══════════════════════════════════════════════════════════════════════════════╝
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│                       ESP32-CAM #2 (Servo)                                │
+│                                                                          │
+│  ┌──────┐  ┌──────┐  ┌──────┐  ┌──────┐  ┌──────┐  ┌──────┐           │
+│  │GPIO12│  │GPIO13│  │GPIO14│  │GPIO15│  │GPIO2 │  │GPIO16│           │
+│  │Thumb │  │Index │  │Middle│  │ Ring │  │ Pinky│  │Wrist │           │
+│  └───┬──┘  └───┬──┘  └───┬──┘  └───┬──┘  └───┬──┘  └───┬──┘           │
+│      │         │         │         │         │         │               │
+│      ▼         ▼         ▼         ▼         ▼         ▼               │
+│   ┌─────┐   ┌─────┐   ┌─────┐   ┌─────┐   ┌─────┐   ┌─────┐           │
+│   │Servo│   │Servo│   │Servo│   │Servo│   │Servo│   │Servo│           │
+│   │ #1  │   │ #2  │   │ #3  │   │ #4  │   │ #5  │   │ #6  │           │
+│   │Thumb│   │Index│   │Mid  │   │Ring │   │Pink │   │Wrist│           │
+│   └───┬─┘   └───┬─┘   └───┬─┘   └───┬─┘   └───┬─┘   └───┬─┘           │
+│       │         │         │         │         │         │               │
+│       └─────────┴─────────┴─────────┴─────────┴─────────┘               │
+│                                │                                         │
+│                                ▼                                         │
+│                    ┌───────────────────┐                                 │
+│                    │   EXTERNAL 5V     │                                 │
+│                    │   POWER SUPPLY    │                                 │
+│                    │   (2A minimum)    │                                 │
+│                    └───────────────────┘                                 │
+└─────────────────────────────────────────────────────────────────────────┘
+
+╔═══════════════════════════════════════════════════════════════════════════════╗
+║                         NETWORK DIAGRAM                                        ║
+║          Python Server ← WiFi → ESP32-CAM #1 ← UART → ESP32-CAM #2             ║
+╚═══════════════════════════════════════════════════════════════════════════════╝
+
+┌─────────────────┐         ┌─────────────────┐         ┌─────────────────┐
+│   Computer      │         │   ESP32-CAM #1  │         │   ESP32-CAM #2  │
+│                 │         │   (Camera +     │         │   (Servo)       │
+│  Python Server  │  WiFi   │    Game Logic)  │  UART   │                 │
+│  Gesture Detect │◄────────►│                 │◄────────►│  Servo Control  │
+│  Web Interface  │  AP     │  192.168.4.1    │         │  Random Move    │
+│                 │ Mode    │                 │         │                 │
+└─────────────────┘         └─────────────────┘         └─────────────────┘
+
+╔═══════════════════════════════════════════════════════════════════════════════╗
+║                    ESP32-CAM AVAILABLE GPIO PINS                                 ║
+╚═══════════════════════════════════════════════════════════════════════════════╝
+
+AI-Thinker ESP32-CAM:
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│                                                                       │
+│   ┌───┐ ┌───┐ ┌───┐ ┌───┐ ┌───┐ ┌───┐ ┌───┐ ┌───┐                     │
+│   │ V │ │ G │ │ G │ │ G │ │ G │ │ G │ │ G │ │ 3 │   (Connector side)  │
+│   │ 3 │ │ N │ │ P │ │ P │ │ P │ │ P │ │ P │ │ 3 │                     │
+│   │ 3 │ │ D │ │ I │ │ I │ │ I │ │ I │ │ I │ │   │                     │
+│   │ V │ │   │ │ O │ │ O │ │ O │ │ O │ │ O │ │   │                     │
+│   └───┘ └───┘ └───┘ └───┘ └───┘ └───┘ └───┘ └───┘                     │
+│                                                                       │
+│   Available GPIOs for your use:                                        │
+│   ┌──────────────────────────────────────────────────────────────┐   │
+│   │ GPIO1, GPIO3  │ UART0 (USB - programming only)              │   │
+│   │ GPIO2         │ Available (LED on boot - OK for servos)      │   │
+│   │ GPIO4         │ Available (UART1 TX - used for ESP32 comm)   │   │
+│   │ GPIO12        │ Available (used for thumb servo)            │   │
+│   │ GPIO13        │ Available (used for index servo)            │   │
+│   │ GPIO14        │ Available (used for middle servo)           │   │
+│   │ GPIO15        │ Available (used for ring servo)             │   │
+│   │ GPIO16        │ Available (used for wrist servo)            │   │
+│   │ GPIO32        │ Available (built-in LED)                    │   │
+│   │ GPIO33        │ Available (UART1 RX - used for ESP32 comm)  │   │
+│   └──────────────────────────────────────────────────────────────┘   │
+│                                                                       │
+│   AVOID these pins (used by camera/system):                           │
+│   ┌──────────────────────────────────────────────────────────────┐   │
+│   │ GPIO0         │ Boot mode select                            │   │
+│   │ GPIO5         │ Camera VSYNC                                │   │
+│   │ GPIO18        │ Camera SD3                                  │   │
+│   │ GPIO19        │ Camera SD2                                  │   │
+│   │ GPIO21        │ Camera SD1                                  │   │
+│   │ GPIO22        │ Camera PCLK                                 │   │
+│   │ GPIO23        │ Camera HREF                                 │   │
+│   │ GPIO25        │ Camera VSYNC                                │   │
+│   │ GPIO26, GPIO27 │ Camera I2C (SIOD, SIOC)                    │   │
+│   │ GPIO32        │ Camera PWDN (built-in LED - be careful)     │   │
+│   │ GPIO34, GPIO35 │ Camera (no internal pull-up)               │   │
+│   │ GPIO36, GPIO39 │ Camera (input only)                        │   │
+│   └──────────────────────────────────────────────────────────────┘   │
+│                                                                       │
+└───────────────────────────────────────────────────────────────────────┘
+
+╔═══════════════════════════════════════════════════════════════════════════════╗
+║                         PIN CONFIGURATION SUMMARY                               ║
+╚═══════════════════════════════════════════════════════════════════════════════╝
+
+ESP32-CAM #1 (Camera & Game Logic):
+├── UART1 TX:  GPIO4   ───► RX of ESP32-CAM #2
+├── UART1 RX:  GPIO33  ◄─── TX of ESP32-CAM #2
+├── Camera:    OV2640  (standard AI-Thinker pins)
+└── Power:     5V/2A minimum
+└── WiFi AP:   "ESP32-CAM" / "12345678"
+
+ESP32-CAM #2 (Servo Controller):
+├── UART1 RX:  GPIO4   ◄─── TX of ESP32-CAM #1
+├── UART1 TX:  GPIO33  ───► RX of ESP32-CAM #1
+├── Servo 1:   GPIO12  (Thumb)
+├── Servo 2:   GPIO13  (Index)
+├── Servo 3:   GPIO14  (Middle)
+├── Servo 4:   GPIO15  (Ring)
+├── Servo 5:   GPIO2   (Pinky)
+├── Servo 6:   GPIO16  (Wrist, optional)
+└── Power:     USB + external 5V for servos
+
+CRITICAL: ALWAYS CONNECT GND BETWEEN BOTH ESP32-CAMs FOR UART TO WORK!
+
+╔═══════════════════════════════════════════════════════════════════════════════╗
+║                         GAME FLOW SEQUENCE                                      ║
+╚═══════════════════════════════════════════════════════════════════════════════╝
+
+1. USER makes gesture (Rock/Paper/Scissors) in front of camera
+                   │
+                   ▼
+2. PYTHON SERVER detects gesture using MediaPipe
+                   │
+                   ▼
+3. USER clicks "PLAY ROUND" button on web interface
+                   │
+                   ▼
+4. PYTHON SERVER sends HTTP request to ESP32-CAM #1
+   GET /play?move=rock
+                   │
+                   ▼
+5. ESP32-CAM #1 sends UART command: "PLAY\n"
+   ┌─────────────────────────────────┐
+   │ GPIO4 (TX) ──────> GPIO4 (RX)  │
+   │ ESP32-CAM #1     ESP32-CAM #2   │
+   └─────────────────────────────────┘
+                   │
+                   ▼
+6. ESP32-CAM #2 receives UART, randomly selects move
+                   │
+                   ▼
+7. ESP32-CAM #2 moves servos to physical gesture
+                   │
+                   ▼
+8. ESP32-CAM #2 sends UART response: "MOVE:paper\n"
+   ┌─────────────────────────────────┐
+   │ GPIO33 (RX) ◄──── GPIO33 (TX)  │
+   │ ESP32-CAM #1     ESP32-CAM #2   │
+   └─────────────────────────────────┘
+                   │
+                   ▼
+9. ESP32-CAM #1 determines winner (rock > scissors, etc.)
+                   │
+                   ▼
+10. ESP32-CAM #1 updates scores and returns JSON to Python
+                   │
+                   ▼
+11. WEB INTERFACE displays result
+                   │
+                   ▼
+12. Game continues! (Scores tracked across rounds)
+
+╔═══════════════════════════════════════════════════════════════════════════════╗
+║                         GAME LOGIC REFERENCE                                    ║
+╚═══════════════════════════════════════════════════════════════════════════════╝
+
+    ┌─────────┐
+    │  ROCK   │
+    │  ✊     │
+    └────┬────┘
+         │ beats
+         ▼
+    ┌─────────┐
+    │ SCISSORS│───beats───►┌─────────┐
+    │  ✌️    │             │  PAPER  │
+    └─────────┘             │  ✋     │
+            ◄───────────────└─────────┘
+                 beats
+
+    Rock (✊) beats Scissors (✌️)  - Crushes
+    Scissors (✌️) beats Paper (✋)  - Cuts
+    Paper (✋) beats Rock (✊)      - Covers
+    Same gesture = TIE

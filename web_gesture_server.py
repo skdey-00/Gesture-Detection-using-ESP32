@@ -1,21 +1,28 @@
 """
 Flask server that connects to ESP32-CAM stream and performs gesture detection.
 Displays live video + detection results on a webpage.
+Includes Rock Paper Scissors game functionality.
 """
 
 import cv2
 import numpy as np
 import mediapipe as mp
-from flask import Flask, render_template, Response, jsonify, stream_with_context
+from flask import Flask, render_template, Response, jsonify, stream_with_context, request
 import threading
 import time
 import sys
+
+# Import game engine (UART version)
+from game_engine_uart import GameEngine
 
 app = Flask(__name__)
 
 # ESP32-CAM stream URL
 # The ESP32-CAM serves the MJPEG stream at /stream endpoint
 ESP32_STREAM_URL = "http://192.168.4.1/stream"
+
+# ESP32-CAM URL (now handles game logic and UART communication)
+ESP32_CAM_URL = "http://192.168.4.1"
 
 # Global variables
 current_gesture = "No hand"
@@ -24,6 +31,9 @@ detector = None
 frame_lock = threading.Lock()
 latest_frame = None
 frame_count = 0
+game_engine = None
+game_lock = threading.Lock()
+last_round_result = None
 
 
 class GestureDetector:
@@ -324,6 +334,92 @@ def status():
     })
 
 
+# ===================
+# Game Endpoints
+# ===================
+
+@app.route('/game/play', methods=['POST'])
+def play_round():
+    """
+    Play a round of Rock Paper Scissors.
+    Uses the current detected gesture as the player's move.
+    """
+    global last_round_result, game_engine
+
+    if game_engine is None:
+        return jsonify({
+            'error': 'Game engine not initialized'
+        }), 500
+
+    # Get current gesture
+    with gesture_lock:
+        player_gesture = current_gesture
+
+    # Play the round
+    result = game_engine.play_round(player_gesture)
+
+    # Store last result
+    with game_lock:
+        last_round_result = result
+
+    return jsonify(result)
+
+
+@app.route('/game/scores')
+def get_scores():
+    """Get current game scores."""
+    global game_engine
+
+    if game_engine is None:
+        return jsonify({'player': 0, 'esp32': 0, 'tie': 0})
+
+    return jsonify(game_engine.get_scores())
+
+
+@app.route('/game/reset', methods=['POST'])
+def reset_scores():
+    """Reset game scores."""
+    global game_engine, last_round_result
+
+    if game_engine is None:
+        return jsonify({'error': 'Game engine not initialized'}), 500
+
+    game_engine.reset_scores()
+
+    with game_lock:
+        last_round_result = None
+
+    return jsonify({'message': 'Scores reset successfully'})
+
+
+@app.route('/game/history')
+def get_history():
+    """Get game history."""
+    global game_engine
+
+    if game_engine is None:
+        return jsonify([])
+
+    limit = request.args.get('limit', 10, type=int)
+    return jsonify(game_engine.get_history(limit))
+
+
+@app.route('/game/status')
+def game_status():
+    """Get game status including last round result."""
+    global game_engine, last_round_result
+
+    esp32_cam_connected = game_engine.esp32_connected if game_engine else False
+
+    response = {
+        'esp32_connected': esp32_cam_connected,  # ESP32-CAM connection
+        'uart_connected': esp32_cam_connected,    # UART status (same as CAM connection)
+        'last_round': last_round_result
+    }
+
+    return jsonify(response)
+
+
 if __name__ == '__main__':
     # Test connection first
     if not test_stream_connection():
@@ -338,6 +434,11 @@ if __name__ == '__main__':
 
     # Initialize detector
     detector = GestureDetector()
+
+    # Initialize game engine
+    print("Initializing game engine...")
+    game_engine = GameEngine(esp32_cam_url=ESP32_CAM_URL)
+    print(f"Game engine ready. ESP32-CAM at: {ESP32_CAM_URL}")
 
     # Start frame capture thread
     capture_thread = threading.Thread(target=capture_frames, daemon=True)

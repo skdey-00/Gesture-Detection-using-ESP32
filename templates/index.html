@@ -38,6 +38,151 @@
             margin-bottom: 30px;
         }
 
+        /* Game UI Styles */
+        .play-button {
+            width: 100%;
+            padding: 20px;
+            font-size: 1.5rem;
+            font-weight: bold;
+            background: linear-gradient(135deg, #00ff88 0%, #00cc6a 100%);
+            color: #1a1a2e;
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-bottom: 15px;
+        }
+
+        .play-button:hover {
+            transform: scale(1.02);
+            box-shadow: 0 0 30px rgba(0, 255, 136, 0.4);
+        }
+
+        .play-button:active {
+            transform: scale(0.98);
+        }
+
+        .play-button:disabled {
+            background: #666;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .scoreboard {
+            display: flex;
+            justify-content: space-around;
+            margin: 20px 0;
+        }
+
+        .score-item {
+            text-align: center;
+        }
+
+        .score-value {
+            font-size: 2.5rem;
+            font-weight: bold;
+            line-height: 1;
+        }
+
+        .score-label {
+            font-size: 0.8rem;
+            color: #888;
+            text-transform: uppercase;
+            margin-top: 5px;
+        }
+
+        .score-player { color: #4ecdc4; }
+        .score-esp32 { color: #ff6b6b; }
+        .score-tie { color: #ffe66d; }
+
+        .round-result {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 10px;
+            padding: 15px;
+            margin-top: 15px;
+            text-align: center;
+            display: none;
+        }
+
+        .round-result.active {
+            display: block;
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .moves-display {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 20px;
+            margin-bottom: 10px;
+        }
+
+        .move-icon {
+            font-size: 3rem;
+        }
+
+        .move-label {
+            font-size: 0.75rem;
+            color: #888;
+            margin-top: 5px;
+        }
+
+        .vs-text {
+            font-size: 1.5rem;
+            color: #888;
+            font-weight: bold;
+        }
+
+        .result-message {
+            font-size: 1.2rem;
+            font-weight: bold;
+            padding: 10px;
+            border-radius: 8px;
+            margin-top: 10px;
+        }
+
+        .result-win {
+            background: rgba(78, 205, 196, 0.2);
+            color: #4ecdc4;
+        }
+
+        .result-lose {
+            background: rgba(255, 107, 107, 0.2);
+            color: #ff6b6b;
+        }
+
+        .result-tie {
+            background: rgba(255, 230, 109, 0.2);
+            color: #ffe66d;
+        }
+
+        .result-unknown {
+            background: rgba(136, 136, 136, 0.2);
+            color: #888;
+        }
+
+        .reset-button {
+            background: transparent;
+            border: 1px solid #ff6b6b;
+            color: #ff6b6b;
+            padding: 8px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            margin-top: 10px;
+            transition: all 0.3s ease;
+        }
+
+        .reset-button:hover {
+            background: #ff6b6b;
+            color: #fff;
+        }
+
         .main-content {
             display: grid;
             grid-template-columns: 1fr 350px;
@@ -204,12 +349,60 @@
                 </div>
 
                 <div class="card">
+                    <h2>🎮 Rock Paper Scissors</h2>
+                    <button class="play-button" id="playButton" onclick="playRound()">
+                        PLAY ROUND
+                    </button>
+
+                    <div class="scoreboard">
+                        <div class="score-item">
+                            <div class="score-value score-player" id="playerScore">0</div>
+                            <div class="score-label">You</div>
+                        </div>
+                        <div class="score-item">
+                            <div class="score-value score-tie" id="tieScore">0</div>
+                            <div class="score-label">Tie</div>
+                        </div>
+                        <div class="score-item">
+                            <div class="score-value score-esp32" id="esp32Score">0</div>
+                            <div class="score-label">ESP32</div>
+                        </div>
+                    </div>
+
+                    <div class="round-result" id="roundResult">
+                        <div class="moves-display">
+                            <div>
+                                <div class="move-icon" id="playerMoveIcon">✊</div>
+                                <div class="move-label">You</div>
+                            </div>
+                            <div class="vs-text">VS</div>
+                            <div>
+                                <div class="move-icon" id="esp32MoveIcon">✊</div>
+                                <div class="move-label">ESP32</div>
+                            </div>
+                        </div>
+                        <div class="result-message" id="resultMessage">Result</div>
+                    </div>
+
+                    <div style="text-align: center;">
+                        <button class="reset-button" onclick="resetScores()">Reset Scores</button>
+                    </div>
+                </div>
+
+                <div class="card">
                     <h2>Status</h2>
                     <div class="status-item">
                         <span class="status-label">ESP32-CAM</span>
                         <span>
                             <span class="status-indicator status-loading" id="camIndicator"></span>
                             <span class="status-value" id="camStatus">Checking...</span>
+                        </span>
+                    </div>
+                    <div class="status-item">
+                        <span class="status-label">UART Link</span>
+                        <span>
+                            <span class="status-indicator status-loading" id="uartIndicator"></span>
+                            <span class="status-value" id="uartStatus">Checking...</span>
                         </span>
                     </div>
                     <div class="status-item">
@@ -353,6 +546,133 @@
             camStatus.textContent = 'Error';
             camIndicator.className = 'status-indicator status-disconnected';
         };
+
+        // ===================
+        // Game Functions
+        // ===================
+
+        const moveEmojis = {
+            'rock': '✊',
+            'paper': '✋',
+            'scissors': '✌️',
+            'unknown': '❓',
+            'no hand': '👋'
+        };
+
+        const resultClasses = {
+            'player': 'result-win',
+            'esp32': 'result-lose',
+            'tie': 'result-tie',
+            'unknown': 'result-unknown'
+        };
+
+        // Load scores on page load
+        loadScores();
+
+        async function playRound() {
+            const playButton = document.getElementById('playButton');
+            playButton.disabled = true;
+            playButton.textContent = 'Playing...';
+
+            try {
+                const response = await fetch('/game/play', {
+                    method: 'POST'
+                });
+                const result = await response.json();
+
+                // Update scores
+                updateScores(result.scores);
+
+                // Update round result display
+                showRoundResult(result);
+
+            } catch (error) {
+                console.error('Play round error:', error);
+                showRoundResult({
+                    player_move: 'error',
+                    esp32_move: 'error',
+                    result: 'unknown',
+                    message: 'Connection error'
+                });
+            } finally {
+                playButton.disabled = false;
+                playButton.textContent = 'PLAY ROUND';
+            }
+        }
+
+        function showRoundResult(result) {
+            const roundResult = document.getElementById('roundResult');
+            const playerMoveIcon = document.getElementById('playerMoveIcon');
+            const esp32MoveIcon = document.getElementById('esp32MoveIcon');
+            const resultMessage = document.getElementById('resultMessage');
+
+            // Update move icons
+            playerMoveIcon.textContent = moveEmojis[result.player_move] || '❓';
+            esp32MoveIcon.textContent = moveEmojis[result.esp32_move] || '❓';
+
+            // Update result message
+            resultMessage.textContent = result.message;
+            resultMessage.className = 'result-message ' + (resultClasses[result.result] || 'result-unknown');
+
+            // Show the result
+            roundResult.classList.add('active');
+        }
+
+        function updateScores(scores) {
+            document.getElementById('playerScore').textContent = scores.player || 0;
+            document.getElementById('esp32Score').textContent = scores.esp32 || 0;
+            document.getElementById('tieScore').textContent = scores.tie || 0;
+        }
+
+        async function loadScores() {
+            try {
+                const response = await fetch('/game/scores');
+                const scores = await response.json();
+                updateScores(scores);
+            } catch (error) {
+                console.error('Load scores error:', error);
+            }
+        }
+
+        async function resetScores() {
+            if (!confirm('Reset all scores?')) return;
+
+            try {
+                await fetch('/game/reset', { method: 'POST' });
+
+                // Reset display
+                updateScores({ player: 0, esp32: 0, tie: 0 });
+                document.getElementById('roundResult').classList.remove('active');
+
+            } catch (error) {
+                console.error('Reset scores error:', error);
+            }
+        }
+
+        // Check game status periodically
+        async function checkGameStatus() {
+            try {
+                const response = await fetch('/game/status');
+                const data = await response.json();
+
+                // Update UART connection indicator
+                const uartStatus = document.getElementById('uartStatus');
+                const uartIndicator = document.getElementById('uartIndicator');
+
+                if (uartStatus && uartIndicator) {
+                    uartStatus.textContent = data.uart_connected ? 'OK' : 'Error';
+                    uartIndicator.className = 'status-indicator ' + (
+                        data.uart_connected ? 'status-connected' : 'status-disconnected'
+                    );
+                }
+
+            } catch (error) {
+                console.error('Game status error:', error);
+            }
+        }
+
+        // Check game status every 2 seconds
+        setInterval(checkGameStatus, 2000);
     </script>
 </body>
 </html>
